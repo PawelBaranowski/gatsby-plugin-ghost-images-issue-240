@@ -1,3 +1,29 @@
+let ghostConfig
+
+try {
+  ghostConfig = require(`./.ghost`)
+} catch (e) {
+  ghostConfig = {
+    development: {
+      apiUrl: process.env.GHOST_API_URL,
+      contentApiKey: process.env.GHOST_CONTENT_API_KEY,
+    },
+    production: {
+      apiUrl: process.env.GHOST_API_URL,
+      contentApiKey: process.env.GHOST_CONTENT_API_KEY,
+    },
+  }
+} finally {
+  const { apiUrl, contentApiKey } =
+    process.env.NODE_ENV === `development`
+      ? ghostConfig.development
+      : ghostConfig.production
+
+  if (!apiUrl || !contentApiKey || contentApiKey.match(/<key>/)) {
+    ghostConfig = null //allow default config to take over
+  }
+}
+
 module.exports = {
   siteMetadata: {
     title: `Gatsby Default Starter`,
@@ -16,42 +42,41 @@ module.exports = {
     `gatsby-transformer-sharp`,
     `gatsby-plugin-sharp`,
     {
-      resolve: `gatsby-source-ghost`,
+      resolve: `gatsby-source-try-ghost`,
       options: {
-          apiUrl: `http://localhost:2368`,
-          contentApiKey: `PUT CONTENT KEY HERE`,
-          version: `v3`
-      }
+        ghostConfig:
+          process.env.NODE_ENV === `development`
+            ? ghostConfig.development
+            : ghostConfig.production,
+      },
     },
     {
-        resolve: `gatsby-plugin-ghost-images`,
-        options: {
-            // An array of node types and image fields per node
-            // Image fields must contain a valid absolute path to the image to be downloaded
-            lookup: [
-                {
-                    type: `GhostPost`,
-                    imgTags: [`feature_image`],
-                },
-                {
-                    type: `GhostPage`,
-                    imgTags: [`feature_image`],
-                },
-                {
-                    type: `GhostSettings`,
-                    imgTags: [`cover_image`],
-                },
-            ],
-            // Additional condition to exclude nodes 
-            // Takes precedence over lookup
-            exclude: node => (
-                node.ghostId === undefined
-            ),
-            // Additional information messages useful for debugging
-            verbose: true,
-            // Option to disable the module (default: false)
-            disable: false,
-        },
+      resolve: `gatsby-plugin-ghost-images`,
+      options: {
+        // An array of node types and image fields per node
+        // Image fields must contain a valid absolute path to the image to be downloaded
+        lookup: [
+          {
+            type: `GhostPost`,
+            imgTags: [`feature_image`],
+          },
+          {
+            type: `GhostPage`,
+            imgTags: [`feature_image`],
+          },
+          {
+            type: `GhostSettings`,
+            imgTags: [`cover_image`],
+          },
+        ],
+        // Additional condition to exclude nodes
+        // Takes precedence over lookup
+        exclude: node => node.ghostId === undefined,
+        // Additional information messages useful for debugging
+        verbose: true,
+        // Option to disable the module (default: false)
+        disable: false,
+      },
     },
     {
       resolve: `gatsby-plugin-manifest`,
